@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deutschland | Interactive Fluid Gallery</title>
+  <style>
+    /* --- Modern Fluid Design Tokens --- */
+    :root {
+      --bg-main: #060314;
+      --panel-glass: rgba(255, 255, 255, 0.02);
+      --panel-border: rgba(255, 255, 255, 0.06);
+      --color-pink: #ff60cb;
+      --color-purple: #963bfe;
+      --gradient-primary: linear-gradient(135deg, #ff007f 0%, #7928ca 100%);
+      --text-premium: #ffffff;
+      --text-muted: rgba(255, 255, 255, 0.5);
+      --ease-lux: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at top, rgba(255, 96, 203, 0.08), transparent 25%),
+        radial-gradient(circle at right top, rgba(150, 59, 254, 0.10), transparent 20%),
+        linear-gradient(145deg, #04010a 0%, #080313 45%, #05020d 100%);
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-premium);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      animation: driftGrid 18s linear infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @keyframes driftGrid {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(0, 40px, 0); }
+    }
+
+    /* --- Dribbble Interactive Fluid Background --- */
+    #fluidCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+      mix-blend-mode: screen;
+      opacity: 0.85;
+    }
+
+    /* --- Premium Cinematic Preloader --- */
+    #preloader {
+      position: fixed;
+      inset: 0;
+      background: #03010b;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 1s var(--ease-lux), transform 1s var(--ease-lux);
+    }
+
+    .preloader-title {
+      font-family: 'Playfair Display', 'Georgia', serif;
+      font-size: 2.8rem;
+      font-weight: 300;
+      letter-spacing: 6px;
+      background: linear-gradient(135deg, #ffffff 20%, var(--color-pink) 60%, var(--color-purple) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 2rem;
+      opacity: 0;
+      transform: translateY(30px);
+      animation: revealText 1.4s var(--ease-lux) forwards 0.3s;
+    }
+
+    .preloader-line {
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--color-pink), var(--color-purple), transparent);
+      animation: expandLine 1.6s var(--ease-lux) forwards 0.6s;
+    }
+
+    @keyframes revealText { to { opacity: 1; transform: translateY(0); } }
+    @keyframes expandLine { to { width: 340px; } }
+
+    .preloader-fade-out {
+      opacity: 0 !important;
+      transform: scale(1.03);
+      pointer-events: none;
+    }
+
+    /* --- Content Frame Window wrapper --- */
+    .app-wrapper {
+      position: relative;
+      z-index: 1;
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 1.2s var(--ease-lux) 0.8s, transform 1.2s var(--ease-lux) 0.8s;
+      padding: 5rem 2rem;
+    }
+
+    .app-wrapper.loaded {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .gallery-header {
+      text-align: center;
+      max-width: 800px;
+      margin: 0 auto 4rem auto;
+    }
+
+    .gallery-header h1 {
+      font-family: 'Playfair Display', 'Didot', 'Georgia', serif;
+      font-size: 4rem;
+      font-weight: 400;
+      letter-spacing: 3px;
+      margin-bottom: 1.2rem;
+      background: linear-gradient(135deg, #ffffff 10%, #ffd1ef 45%, var(--color-pink) 70%, #a36bff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      display: inline-block;
+      text-shadow: 0 0 25px rgba(255, 96, 203, 0.12);
+    }
+
+    .gallery-header p {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.72);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      font-weight: 600;
+      text-shadow: 0 0 12px rgba(150, 59, 254, 0.18);
+    }
+
+    /* --- Filter Controllers Bar --- */
+    .filter-container {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 4rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background: linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.10);
+      color: var(--text-premium);
+      padding: 0.78rem 2.1rem;
+      font-size: 0.78rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.35s var(--ease-lux);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 18px rgba(0,0,0,0.25);
+    }
+
+    .filter-btn:hover {
+      background: linear-gradient(145deg, rgba(255, 96, 203, 0.12), rgba(150, 59, 254, 0.08));
+      border-color: rgba(255, 96, 203, 0.55);
+      color: #fff;
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 10px 25px rgba(255, 96, 203, 0.18), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    }
+
+    .filter-btn.active {
+      background: linear-gradient(135deg, #ff5ecb 0%, #a744ff 45%, #7b2cff 100%);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 12px 30px rgba(166, 68, 255, 0.38), 0 0 0 1px rgba(255,255,255,0.10) inset;
+    }
+
+    /* --- Perfectly Aligned Symmetrical Grid Array --- */
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2rem;
+      max-width: 1440px;
+      margin: 0 auto;
+      perspective: 1000px; /* Enhanced Grid Base Stage */
+    }
+
+    .gallery-item {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      border-radius: 22px;
+      overflow: hidden;
+      background: linear-gradient(145deg, rgba(255,255,255,0.04), rgba(10,4,24,0.65));
+      animation: floatCard 6s ease-in-out infinite;
+      border: 1px solid rgba(255,255,255,0.08);
+      cursor: pointer;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+      transform-style: preserve-3d;
+      transition: transform 0.6s var(--ease-lux), border-color 0.45s var(--ease-lux), box-shadow 0.45s var(--ease-lux);
+    }
+
+    @keyframes floatCard {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-4px); }
+    }
+
+    .gallery-item::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent 10%, rgba(255,255,255,0.10) 45%, transparent 65%);
+      transform: translateX(-120%);
+      transition: transform 0.75s var(--ease-lux);
+      pointer-events: none;
+    }
+
+    .gallery-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.8s var(--ease-lux);
+    }
+
+    /* Dribbble Style Neon Trailing Interaction Rules */
+    .gallery-item:hover {
+      transform: translateY(-10px) scale(1.03) rotateX(2deg) rotateY(1deg);
+      border-color: rgba(255, 96, 203, 0.68);
+      box-shadow: 0 24px 46px rgba(255, 96, 203, 0.16), 0 28px 60px rgba(0,0,0,0.55);
+    }
+
+    .gallery-item:hover::after {
+      transform: translateX(120%);
+    }
+
+    .gallery-item:hover img {
+      transform: scale(1.08);
+      filter: saturate(1.08) contrast(1.02);
+    }
+
+    .item-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(5, 2, 12, 0.98) 0%, rgba(5, 2, 12, 0.35) 55%, rgba(5, 2, 12, 0.05) 100%);
+      opacity: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 1.2rem;
+      transform: translateZ(20px);
+      transition: opacity 0.4s var(--ease-lux), transform 0.4s var(--ease-lux);
+      border-radius: 22px;
+    }
+
+    .gallery-item:hover .item-overlay { 
+      opacity: 1; 
+      transform: translateZ(30px);
+    }
+    
+    .item-tag { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #ffd3f2; margin-bottom: 0.45rem; font-weight: 700; text-shadow: 0 0 8px rgba(255,96,203,0.35); }
+    .item-title { font-size: 1.15rem; font-weight: 400; letter-spacing: 0.5px; color: #ffffff; text-shadow: 0 2px 12px rgba(0,0,0,0.45); }
+
+    .gallery-item.hidden {
+      opacity: 0; transform: scale(0.8) translateY(30px); pointer-events: none;
+      position: absolute; width: 0; height: 0; overflow: hidden; margin: 0; border: none;
+    }
+
+    /* --- Glass Lightbox Structure Frame with 3D Stage Environment --- */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 1, 10, 0.96);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      perspective: 2000px; /* Establishes deep space stage environment */
+      transition: opacity 0.5s var(--ease-lux);
+    }
+
+    .lightbox.active { opacity: 1; pointer-events: auto; }
+
+    .lightbox-content::before {
+      content: "";
+      position: absolute;
+      inset: -14px;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      animation: pulseFrame 5s ease-in-out infinite;
+      z-index: -1;
+    }
+    
+    .lightbox-content { 
+      position: relative; 
+      max-width: 80vw; 
+      max-height: 80vh; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center;
+      transform-style: preserve-3d;
+    }
+    
+    /* 3D Immersive Transform Configurations */
+    .lightbox-content img {
+      max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 40px 90px rgba(0,0,0,0.8), 0 0 60px rgba(255, 96, 203, 0.15);
+      transform: translate3d(0, 50px, -200px) rotateX(12deg);
+      opacity: 0;
+      transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s var(--ease-lux);
+    }
+
+    /* Triggers premium 3D floating visual entrance */
+    .lightbox.active .lightbox-content img { 
+      transform: translate3d(0, 0, 0) rotateX(0deg); 
+      opacity: 1;
+    }
+
+    /* Dynamic runtime classes appended during navigation to fire direction-based 3D depth flips */
+    .lightbox-content img.flip-next {
+      animation: shift3DNext 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .lightbox-content img.flip-prev {
+      animation: shift3DPrev 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes shift3DNext {
+      0% { transform: translate3d(140px, 0, -100px) rotateY(-20deg); opacity: 0; }
+      100% { transform: translate3d(0, 0, 0) rotateY(0deg); opacity: 1; }
+    }
+    @keyframes shift3DPrev {
+      0% { transform: translate3d(-140px, 0, -100px) rotateY(20deg); opacity: 0; }
+      100% { transform: translate3d(0, 0, 0) rotateY(0deg); opacity: 1; }
+    }
+
+    .lightbox-caption { 
+      margin-top: 1.5rem; 
+      font-size: 1.2rem; 
+      font-weight: 300; 
+      letter-spacing: 2px; 
+      color: var(--color-pink);
+      transform: translateZ(40px);
+    }
+
+    /* --- Enhanced Premium Navigation Controllers Frame Layout --- */
+    .lb-btn {
+      position: absolute; 
+      background: rgba(255, 255, 255, 0.02); 
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #ffffff; 
+      padding: 0.75rem 1.5rem;
+      border-radius: 50px; 
+      cursor: pointer;
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      transition: all 0.4s var(--ease-lux); 
+      z-index: 10010;
+    }
+
+    .lb-btn:hover {
+      background: rgba(255, 96, 203, 0.12); 
+      border-color: var(--color-pink); 
+      color: var(--color-pink);
+      box-shadow: 0 0 30px rgba(255, 96, 203, 0.3);
+    }
+
+    /* SVG Vector Sizing Matrix Rules */
+    .lb-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+      transition: transform 0.4s var(--ease-lux);
+    }
+    
+    /* Interactive Translation Layout Rules */
+    .lb-prev:hover svg { transform: translateX(-4px); }
+    .lb-next:hover svg { transform: translateX(4px); }
+    .lb-close:hover svg { transform: rotate(90deg); }
+
+    /* Spatial Offsetting Alignments */
+    .lb-close { top: -55px; right: 0; }
+    .lb-prev { left: -140px; top: 50%; transform: translateY(-50%); }
+    .lb-next { right: -140px; top: 50%; transform: translateY(-50%); }
+
+    @media (max-width: 1300px) { .lb-prev { left: -110px; } .lb-next { right: -110px; } }
+    @media (max-width: 1200px) { .gallery-grid { grid-template-columns: repeat(3, 1fr); } .lb-prev { left: -60px; } .lb-next { right: -60px; } }
+    @media (max-width: 900px) { 
+      .gallery-grid { grid-template-columns: repeat(2, 1fr); } 
+      .lb-prev { left: 20px; top: auto; bottom: -90px; transform: none; } 
+      .lb-next { right: 20px; top: auto; bottom: -90px; transform: none; } 
+      .lightbox-content { margin-bottom: 100px; } 
+    }
+    @media (max-width: 600px) { .gallery-grid { grid-template-columns: 1fr; } .gallery-header h1 { font-size: 2.8rem; } }
+  </style>
+</head>
+<body>
+
+  <canvas id="fluidCanvas"></canvas>
+
+  <div id="preloader">
+    <h2 class="preloader-title">Welcome to my image gallery</h2>
+    <div class="preloader-line"></div>
+  </div>
+
+  <div class="app-wrapper" id="appWrapper">
+    <header class="gallery-header">
+      <h1>IMAGE GALLERY</h1>
+      <p>Interactive Fluid Visual Anthology</p>
+    </header>
+
+    <div class="filter-container">
+      <button class="filter-btn active" data-filter="all">All Portfolios</button>
+      <button class="filter-btn" data-filter="architecture">Architecture</button>
+      <button class="filter-btn" data-filter="nature">Nature</button>
+      <button class="filter-btn" data-filter="culture">Culture & Food</button>
+    </div>
+
+    <main class="gallery-grid" id="galleryGrid">
+      <div class="gallery-item" data-category="architecture"><img src="https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Architecture</span><h3 class="item-title">Neuschwanstein</h3></div></div>
+      <div class="gallery-item" data-category="architecture"><img src="https://images.unsplash.com/photo-1599946347371-68eb71b16afc?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Architecture</span><h3 class="item-title">Brandenburg Gate</h3></div></div>
+      <div class="gallery-item" data-category="architecture"><img src="https://images.unsplash.com/photo-1560969184-10fe8719e047?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Architecture</span><h3 class="item-title">Cologne Cathedral</h3></div></div>
+      <div class="gallery-item" data-category="architecture"><img src="https://images.unsplash.com/photo-1541746972996-4e0b0f43e02a?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Architecture</span><h3 class="item-title">Frankfurt Main</h3></div></div>
+      
+      <div class="gallery-item" data-category="nature"><img src="https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Nature</span><h3 class="item-title">The Black Forest</h3></div></div>
+      <div class="gallery-item" data-category="nature"><img src="https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Nature</span><h3 class="item-title">Bavarian Alps</h3></div></div>
+      <div class="gallery-item" data-category="nature"><img src="https://images.unsplash.com/photo-1527004013197-933c4bb611b3?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Nature</span><h3 class="item-title">Lake Eibsee Mirage</h3></div></div>
+      <div class="gallery-item" data-category="nature"><img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Nature</span><h3 class="item-title">Rhine Horizons</h3></div></div>
+
+      <div class="gallery-item" data-category="culture"><img src="https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Culture & Food</span><h3 class="item-title">Artisan Brezel</h3></div></div>
+      <div class="gallery-item" data-category="culture"><img src="https://images.unsplash.com/photo-1599599810769-bcde5a160d32?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Culture & Food</span><h3 class="item-title">Bavarian Skillet</h3></div></div>
+      <div class="gallery-item" data-category="culture"><img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Culture & Food</span><h3 class="item-title">Oktoberfest Spirit</h3></div></div>
+      <div class="gallery-item" data-category="culture"><img src="https://images.unsplash.com/photo-1541014741259-de529411b96a?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Culture & Food</span><h3 class="item-title">Rothenburg Square</h3></div></div>
+
+      <div class="gallery-item" data-category="architecture"><img src="https://images.unsplash.com/photo-1560969184-10fe8719e047?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Architecture</span><h3 class="item-title">Berlin Modernist</h3></div></div>
+      <div class="gallery-item" data-category="nature"><img src="https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Nature</span><h3 class="item-title">Black Forest Trail</h3></div></div>
+      <div class="gallery-item" data-category="culture"><img src="https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Culture & Food</span><h3 class="item-title">Black Forest Cake</h3></div></div>
+      <div class="gallery-item" data-category="architecture"><img src="https://images.unsplash.com/photo-1599946347371-68eb71b16afc?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Architecture</span><h3 class="item-title">Hamburg Docks</h3></div></div>
+      <div class="gallery-item" data-category="nature"><img src="https://images.unsplash.com/photo-1418065460487-3e41a6c84dc5?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Nature</span><h3 class="item-title">Autumnal Harz</h3></div></div>
+      <div class="gallery-item" data-category="architecture"><img src="https://images.unsplash.com/photo-1517736996303-4eec4a66bb17?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Architecture</span><h3 class="item-title">Dresden Baroque</h3></div></div>
+      <div class="gallery-item" data-category="culture"><img src="https://images.unsplash.com/photo-1585543805890-6051f7829f98?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Culture & Food</span><h3 class="item-title">Munich Beer Garden</h3></div></div>
+      <div class="gallery-item" data-category="nature"><img src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=600&h=600&q=80"><div class="item-overlay"><span class="item-tag">Nature</span><h3 class="item-title">Königssee Reflections</h3></div></div>
+    </main>
+  </div>
+
+  <div class="lightbox" id="lightbox">
+    <div class="lightbox-content">
+      <button class="lb-btn lb-close" id="closeBtn">
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        <span>Close</span>
+      </button>
+      <button class="lb-btn lb-prev" id="prevBtn">
+        <svg viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg>
+        <span>Prev</span>
+      </button>
+      <img src="" alt="Active View" id="lightboxImg">
+      <div class="lightbox-caption" id="lightboxCaption"></div>
+      <button class="lb-btn lb-next" id="nextBtn">
+        <span>Next</span>
+        <svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    /* --- Interactive Fluid Canvas Core Math Simulation --- */
+    const canvas = document.getElementById('fluidCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    let mouse = { x: 0, y: 0, targetX: 0, targetY: 0, active: false };
+
+    function resize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+      mouse.targetX = mouse.x = width / 2;
+      mouse.targetY = mouse.y = height / 2;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    window.addEventListener('mousemove', (e) => {
+      mouse.targetX = e.clientX;
+      mouse.targetY = e.clientY;
+      mouse.active = true;
+    });
+
+    // Mesh Flow Nodes setup
+    class FluidNode {
+      constructor(x, y) {
+        this.ox = x; this.oy = y;
+        this.x = x; this.y = y;
+        this.vx = 0; this.vy = 0;
+        this.radius = 140 + Math.random() * 120;
+      }
+      update(t) {
+        // Fluid noise wave math calculation mechanics
+        let angle = Math.sin(this.ox * 0.005 + t) * Math.cos(this.oy * 0.005 + t) * Math.PI * 2;
+        this.vx += Math.cos(angle) * 0.15;
+        this.vy += Math.sin(angle) * 0.15;
+
+        // Interaction system calculations matching the video overlay dynamics
+        let dx = mouse.x - this.x;
+        let dy = mouse.y - this.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 400 && mouse.active) {
+          let force = (400 - dist) / 400;
+          this.vx += (dx / dist) * force * 0.6;
+          this.vy += (dy / dist) * force * 0.6;
+        }
+
+        this.x += this.vx; this.y += this.vy;
+        this.vx *= 0.94; this.vy *= 0.94; // Spring friction damping
+        // Boundary home position pull back
+        this.vx += (this.ox - this.x) * 0.004;
+        this.vy += (this.oy - this.y) * 0.004;
+      }
+    }
+
+    const nodes = [];
+    const cols = 7, rows = 7;
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
+        nodes.push(new FluidNode((width / (cols - 1)) * i, (height / (rows - 1)) * j));
+      }
+    }
+
+    let tick = 0;
+    function renderFluid() {
+      ctx.clearRect(0, 0, width, height);
+      tick += 0.003;
+      
+      // Calculate mouse lerping for fluid movement smoothing
+      mouse.x += (mouse.targetX - mouse.x) * 0.08;
+      mouse.y += (mouse.targetY - mouse.y) * 0.08;
+
+      nodes.forEach(n => n.update(tick));
+
+      // Build premium pink & purple mesh fluid connection fills
+      for (let i = 0; i < cols - 1; i++) {
+        for (let j = 0; j < rows - 1; j++) {
+          let n1 = nodes[i * rows + j];
+          let n2 = nodes[(i + 1) * rows + j];
+          let n3 = nodes[(i + 1) * rows + (j + 1)];
+          let n4 = nodes[i * rows + (j + 1)];
+
+          ctx.beginPath();
+          ctx.moveTo(n1.x, n1.y);
+          ctx.lineTo(n2.x, n2.y);
+          ctx.lineTo(n3.x, n3.y);
+          ctx.lineTo(n4.x, n4.y);
+          ctx.closePath();
+
+          // Calculate center of localized mesh patches for premium color mapping
+          let cx = (n1.x + n3.x) / 2;
+          let cy = (n1.y + n3.y) / 2;
+          
+          let grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, width * 0.4);
+          grad.addColorStop(0, 'rgba(255, 96, 203, 0.06)');
+          grad.addColorStop(0.5, 'rgba(150, 59, 254, 0.03)');
+          grad.addColorStop(1, 'rgba(6, 3, 20, 0)');
+          
+          ctx.fillStyle = grad;
+          ctx.fill();
+        }
+      }
+      requestAnimationFrame(renderFluid);
+    }
+    renderFluid();
+
+    /* --- Standard Application Gallery Infrastructure Logic --- */
+    const preloader = document.getElementById('preloader');
+    const appWrapper = document.getElementById('appWrapper');
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const items = Array.from(document.querySelectorAll('.gallery-item'));
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightboxImg');
+    const lightboxCaption = document.getElementById('lightboxCaption');
+    const closeBtn = document.getElementById('closeBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    let activeIndex = 0;
+    let visibleItems = [...items];
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        preloader.classList.add('preloader-fade-out');
+        appWrapper.classList.add('loaded');
+      }, 1900);
+    });
+
+    filterBtns.forEach(button => {
+      button.addEventListener('click', () => {
+        document.querySelector('.filter-btn.active').classList.remove('active');
+        button.classList.add('active');
+        const filterValue = button.getAttribute('data-filter');
+        items.forEach(item => {
+          const cat = item.getAttribute('data-category');
+          if (filterValue === 'all' || cat === filterValue) item.classList.remove('hidden');
+          else item.classList.add('hidden');
+        });
+        visibleItems = items.filter(i => !i.classList.contains('hidden'));
+      });
+    });
+
+    function openLightbox(index, animationDirection = null) {
+      activeIndex = index;
+      const target = visibleItems[activeIndex];
+      
+      // Detach older runtime transition layout classes if present
+      lightboxImg.classList.remove('flip-next', 'flip-prev');
+      
+      lightboxImg.src = target.querySelector('img').src;
+      lightboxCaption.textContent = target.querySelector('.item-title').textContent;
+      
+      // Apply the targeted 3D transform direction profile
+      if (animationDirection === 'next') {
+        void lightboxImg.offsetWidth; // Force DOM reflow to restart CSS Keyframe cycle
+        lightboxImg.classList.add('flip-next');
+      } else if (animationDirection === 'prev') {
+        void lightboxImg.offsetWidth;
+        lightboxImg.classList.add('flip-prev');
+      }
+
+      lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() { lightbox.classList.remove('active'); document.body.style.overflow = 'auto'; }
+    
+    function stepImage(dir) {
+      if(visibleItems.length <= 1) return;
+      activeIndex += dir;
+      if(activeIndex < 0) activeIndex = visibleItems.length - 1;
+      if(activeIndex >= visibleItems.length) activeIndex = 0;
+      
+      // Match step calculations with contextual transition arrays
+      const dirClass = dir > 0 ? 'next' : 'prev';
+      openLightbox(activeIndex, dirClass);
+    }
+
+    items.forEach(item => {
+      item.addEventListener('click', () => {
+        const vIdx = visibleItems.indexOf(item);
+        if(vIdx !== -1) openLightbox(vIdx);
+      });
+    });
+
+    closeBtn.addEventListener('click', closeLightbox);
+    nextBtn.addEventListener('click', () => stepImage(1));
+    prevBtn.addEventListener('click', () => stepImage(-1));
+    lightbox.addEventListener('click', (e) => { if(e.target === lightbox) closeLightbox(); });
+    document.addEventListener('keydown', (e) => {
+      if (!lightbox.classList.contains('active')) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowRight') stepImage(1);
+      if (e.key === 'ArrowLeft') stepImage(-1);
+    });
+  </script>
+</body>
+</html>
